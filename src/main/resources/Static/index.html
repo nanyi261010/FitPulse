@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>FitPulse 极动 - 智能健身控制台</title>
+    <!-- 引入 Chart.js 用于渲染数据大屏饼图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f1f5f9; margin: 0; padding: 24px; color: #1e293b; }
+        .layout { display: flex; gap: 24px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; }
+        .card { background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .left-panel { flex: 1; min-width: 420px; }
+        .right-panel { flex: 1; min-width: 420px; display: flex; flex-direction: column; gap: 20px; }
+
+        h2, h3 { margin-top: 0; color: #0f172a; }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #475569; }
+        input, select { width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        .row { display: flex; gap: 12px; }
+        .row .form-group { flex: 1; }
+
+        /* 动作明细区域 */
+        .items-box { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+        .item-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .item-row input { flex: 1; }
+        .btn-del { background: #ef4444; color: #fff; border: none; border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+        .btn-add { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+        .btn-submit { width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .btn-submit:hover { background: #059669; }
+
+        /* 数据看板区域 */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+        .stat-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; }
+        .stat-value { font-size: 22px; font-weight: bold; color: #2563eb; margin-top: 4px; }
+        .chart-container { position: relative; height: 260px; display: flex; justify-content: center; }
+        .tip { margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 14px; display: none; }
+        .tip-success { background: #d1fae5; color: #065f46; }
+        .tip-error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- 左侧：训练录入区 -->
+    <div class="card left-panel">
+        <h2>🏋️ 记录今日训练</h2>
+
+        <div class="form-group">
+            <label>训练计划名称</label>
+            <input type="text" id="title" value="胸肌与三头强化训练">
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>目标肌肉部位</label>
+                <select id="targetMuscle">
+                    <option value="CHEST">胸部 (CHEST)</option>
+                    <option value="BACK">背部 (BACK)</option>
+                    <option value="LEGS">腿部 (LEGS)</option>
+                    <option value="SHOULDERS">肩部 (SHOULDERS)</option>
+                    <option value="ARMS">手臂 (ARMS)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>时长 (分钟)</label>
+                <input type="number" id="durationMinutes" value="60">
+            </div>
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="workoutDate">
+            </div>
+        </div>
+
+        <label>动作组数明细</label>
+        <div class="items-box">
+            <div id="itemsContainer">
+                <div class="item-row">
+                    <input type="text" placeholder="动作名称" class="item-name" value="杠铃卧推">
+                    <input type="number" placeholder="组数" class="item-sets" value="4">
+                    <input type="number" placeholder="次数" class="item-reps" value="10">
+                    <input type="number" step="0.5" placeholder="重量(kg)" class="item-weight" value="80.0">
+                    <button type="button" class="btn-del" onclick="this.parentElement.remove()">删</button>
+                </div>
+            </div>
+            <button type="button" class="btn-add" onclick="addItem()">+ 增加动作</button>
+        </div>
+
+        <button class="btn-submit" onclick="submitWorkout()">完成打卡并更新看板</button>
+        <div id="tipBox" class="tip"></div>
+    </div>
+
+    <!-- 右侧：Stream 分析大屏看板 -->
+    <div class="card right-panel">
+        <h2>📊 体能与训练分析大屏 (Stream API 驱动)</h2>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <label>累计打卡次数</label>
+                <div class="stat-value" id="statWorkouts">-</div>
+            </div>
+            <div class="stat-item">
+                <label>累计总训练时长</label>
+                <div class="stat-value" id="statMinutes">- 分钟</div>
+            </div>
+            <div class="stat-item">
+                <label>累计训练总容量</label>
+                <div class="stat-value" id="statVolume">- kg</div>
+            </div>
+            <div class="stat-item">
+                <label>单日巅峰容量纪录</label>
+                <div class="stat-value" style="font-size: 16px; color: #dc2626;" id="statMaxVolume">-</div>
+            </div>
+        </div>
+
+        <h3>部位训练时长分布 (groupingBy 统计)</h3>
+        <div class="chart-container">
+            <canvas id="muscleChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+    const currentUserId = 1;
+
+    // 初始化设置默认日期
+    document.getElementById('workoutDate').value = new Date().toISOString().split('T')[0];
+
+    function addItem() {
+        const div = document.createElement('div');
+        div.className = 'item-row';
+        div.innerHTML = `
+      <input type="text" placeholder="动作名称" class="item-name" value="哑铃飞鸟">
+      <input type="number" placeholder="组数" class="item-sets" value="3">
+      <input type="number" placeholder="次数" class="item-reps" value="12">
+      <input type="number" step="0.5" placeholder="重量(kg)" class="item-weight" value="15.0">
+      <button type="button" class="btn-del" onclick="this.parentElement.remove()">删</button>
+    `;
+        document.getElementById('itemsContainer').appendChild(div);
+    }
+
+    // 1. 提交打卡记录
+    async function submitWorkout() {
+        const tip = document.getElementById('tipBox');
+        tip.style.display = 'none';
+
+        const rows = document.querySelectorAll('.item-row');
+        const items = [];
+        rows.forEach(r => {
+            const name = r.querySelector('.item-name').value.trim();
+            const sets = parseInt(r.querySelector('.item-sets').value);
+            const reps = parseInt(r.querySelector('.item-reps').value);
+            const weightKg = parseFloat(r.querySelector('.item-weight').value);
+            if (name) items.push({ exerciseName: name, sets, reps, weightKg });
+        });
+
+        const payload = {
+            userId: currentUserId,
+            title: document.getElementById('title').value,
+            targetMuscle: document.getElementById('targetMuscle').value,
+            durationMinutes: parseInt(document.getElementById('durationMinutes').value),
+            workoutDate: document.getElementById('workoutDate').value,
+            items: items
+        };
+
+        try {
+            const res = await fetch('/api/workouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            tip.style.display = 'block';
+            if (data.code === 200) {
+                tip.className = 'tip tip-success';
+                tip.innerText = ' 打卡成功！已持久化并联动 PR 检查，看板已刷新。';
+                // 打卡成功后立即触发数据大屏更新
+                fetchAnalytics();
+            } else {
+                tip.className = 'tip tip-error';
+                tip.innerText = ' 打卡失败：' + data.message;
+            }
+        } catch (err) {
+            tip.style.display = 'block';
+            tip.className = 'tip tip-error';
+            tip.innerText = ' 请求异常：' + err.message;
+        }
+    }
+
+    // 2. 拉取大屏数据并渲染 (GET /api/workouts/analytics)
+    async function fetchAnalytics() {
+        try {
+            const res = await fetch(`/api/workouts/analytics?userId=${currentUserId}`);
+            const result = await res.json();
+            if (result.code !== 200 || !result.data) return;
+
+            const data = result.data;
+            document.getElementById('statWorkouts').innerText = data.totalWorkouts || 0;
+            document.getElementById('statMinutes').innerText = (data.totalDurationMinutes || 0) + ' 分钟';
+            document.getElementById('statVolume').innerText = (data.totalVolumeKg || 0).toLocaleString() + ' kg';
+
+            const maxText = data.maxVolumeWorkoutTitle
+                ? `${data.maxVolumeWorkoutTitle} (${data.maxVolumeWorkoutAmount} kg)`
+                : '暂无数据';
+            document.getElementById('statMaxVolume').innerText = maxText;
+
+            // 渲染饼图
+            renderChart(data.muscleDurationStats || {});
+        } catch (err) {
+            console.error('获取统计看板失败:', err);
+        }
+    }
+
+    function renderChart(muscleStats) {
+        const labels = Object.keys(muscleStats);
+        const values = Object.values(muscleStats);
+
+        const ctx = document.getElementById('muscleChart').getContext('2d');
+        if (chartInstance) {
+            chartInstance.destroy(); // 销毁旧图表重新绘制
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.length ? labels : ['暂无数据'],
+                datasets: [{
+                    data: values.length ? values : [1],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#94a3b8']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    // 页面加载完成后立即拉取一次当前统计看板
+    window.onload = fetchAnalytics;
+</script>
+</body>
+</html>
