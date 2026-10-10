@@ -1,10 +1,7 @@
 package com.example.fitpulse.Mapper;
 
 import com.example.fitpulse.Entity.WorkoutRecord;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
@@ -16,4 +13,7 @@ public interface WorkoutRecordMapper {
     int insert(WorkoutRecord record);
     @Select("SELECT * FROM workout_record WHERE user_id=#{userId} ORDER BY workout_date DESC")
     List<WorkoutRecord> selectByUserId(Long userId);
+    //根据id删除
+    @Delete("DELETE FROM workout_record WHERE id=#{id}")
+    int deleteRecord(Long id);
 }

@@ -6,4 +6,6 @@ import com.example.fitpulse.Vo.WorkoutAnalyticsVO;
 public interface WorkoutService {
     void createWorkout(WorkoutCreateDTO dto);
     WorkoutAnalyticsVO getAnalytics(Long userId);
+
+    void deleteRecord(Long recordId);
 }

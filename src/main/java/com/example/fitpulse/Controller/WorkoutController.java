@@ -26,4 +26,9 @@ public class WorkoutController {
         WorkoutAnalyticsVO analytics = workoutService.getAnalytics(userId);
         return Result.success(analytics);
     }
+    @DeleteMapping("/{recordId}")
+    public Result<Void> deleteRecord(@PathVariable Long recordId){
+        workoutService.deleteRecord(recordId);
+        return Result.success();
+    }
 }

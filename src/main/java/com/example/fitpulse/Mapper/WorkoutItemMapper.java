@@ -1,10 +1,7 @@
 package com.example.fitpulse.Mapper;
 
 import com.example.fitpulse.Entity.WorkoutItem;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
@@ -29,6 +26,7 @@ public interface WorkoutItemMapper {
             "</script>")
 
     List<WorkoutItem> selectByRecordIds(@Param("recordIds") List<Long> recordIds);
-
+    @Delete("DELETE FROM workout_item WHERE record_id = #{recordId}")
+    int deleteByRecordId(Long recordId);
 
 }

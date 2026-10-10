@@ -129,6 +129,13 @@ public class WorkoutServiceImpl implements WorkoutService {
 
         return vo;
     }
+    @Override
+    @Transactional
+    public void deleteRecord(Long recordId) {
+        workoutItemMapper.deleteByRecordId(recordId);
+        workoutRecordMapper.deleteRecord(recordId);
+
+    }
 
     private void updatePersonalRecordIfBroken(Long userId,WorkoutItemDTO itemDTO) {
         UserPersonalRecord currentPr=userPersonalRecordMapper.selectByUserAndExercise(userId,itemDTO.getExerciseName());
