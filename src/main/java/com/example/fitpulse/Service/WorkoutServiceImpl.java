@@ -134,7 +134,10 @@ public class WorkoutServiceImpl implements WorkoutService {
     public void deleteRecord(Long recordId) {
         workoutItemMapper.deleteByRecordId(recordId);
         workoutRecordMapper.deleteRecord(recordId);
-
+    }
+    @Override
+    public List<WorkoutRecord> listRecords(Long userId) {
+        return workoutRecordMapper.selectByUserId(userId);
     }
 
     private void updatePersonalRecordIfBroken(Long userId,WorkoutItemDTO itemDTO) {

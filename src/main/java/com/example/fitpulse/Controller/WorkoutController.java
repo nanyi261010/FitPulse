@@ -2,12 +2,15 @@ package com.example.fitpulse.Controller;
 
 import com.example.fitpulse.Common.Result;
 import com.example.fitpulse.Dto.WorkoutCreateDTO;
+import com.example.fitpulse.Entity.WorkoutRecord;
 import com.example.fitpulse.Service.WorkoutService;
 
 import com.example.fitpulse.Vo.WorkoutAnalyticsVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/workouts")
@@ -30,5 +33,10 @@ public class WorkoutController {
     public Result<Void> deleteRecord(@PathVariable Long recordId){
         workoutService.deleteRecord(recordId);
         return Result.success();
+    }
+    @GetMapping("/list")
+    public Result<List<WorkoutRecord>> listRecords(@RequestParam Long userId) {
+        List<WorkoutRecord> list = workoutService.listRecords(userId);
+        return Result.success(list);
     }
 }
